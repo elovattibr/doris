@@ -1,1 +1,0 @@
-<div {{if props.id }}id="{{:props.id}}" {{/if}} class="col {{if props.large>=1 && props.large<=12 }}col-lg-{{:props.large}}{{/if}} {{if props.medium>=1 && props.medium<=12 }}col-md-{{:props.medium}}{{/if}} {{if props.small>=1 && props.small<=12 }}col-sm-{{:props.small}}{{/if}} {{:props.class}}">{{:content}}</div>
