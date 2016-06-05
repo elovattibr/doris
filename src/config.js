@@ -40,26 +40,29 @@ var settings = {
 function DorisConfig(options){
     
     /*Doris.json config file*/
-    var config = parseConfigFile();
+    var config = parseConfigFile(options||false);
     
     //Extend default then config 
     //file if exist, then options from constructor
     //as overrider.
-    return extend(settings, config, options);
+    return extend(settings, config, options||{});
 
 };
 
-function parseConfigFile(){
+function parseConfigFile(hasOptions){
     
     try {
         
         var path = resolvePath('./doris.json');
         
-        if(!fileExists(path)){
-            throw ("No config file found.");
+        if(fileExists(path)){
+            return JSON.parse(String(getFileContents(path)));
         };
         
-        return JSON.parse(String(getFileContents(path)));
+        if(!hasOptions){
+            console.log("No config file found in " + resolvePath('./'));
+            process.exit();
+        }
         
     } catch (err){
         

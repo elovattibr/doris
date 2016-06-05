@@ -28,7 +28,7 @@ function startDoris(options) {
      * if you use it as a module you must set them yourself
      */
     
-    var settings = new DorisConfig(options||{});
+    var settings = new DorisConfig(options||false);
     
     DorisRouter.prototype.render = new DorisRender(settings);
    

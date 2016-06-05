@@ -51,7 +51,7 @@ DorisServer.prototype = {
         //Listen
         express.listen(settings.port, function(){
 
-            (callback||function(){})(express, session);
+            (callback||function(){})(express, session, settings);
 
         });
 

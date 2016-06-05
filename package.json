@@ -1,6 +1,6 @@
 {
   "name": "doris",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Doris is awesome",
   "main": "index.js",
   "bin": {},
@@ -8,6 +8,9 @@
   "license": "ISC",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "doris": "console.js"
   },
   "dependencies": {
     "domino": "*",
