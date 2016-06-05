@@ -1,0 +1,2 @@
+<link href="/modules/materialize-css/dist/css/materialize.min.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="/public/modules/materialize-css/dist/js/materialize.min.js"></script>

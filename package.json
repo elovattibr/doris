@@ -1,0 +1,27 @@
+{
+  "name": "doris",
+  "version": "0.0.1",
+  "description": "Doris is awesome",
+  "main": "index.js",
+  "bin": {},
+  "author": "Eduardo Lovatti",
+  "license": "ISC",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "domino": "*",
+    "express": "*",
+    "express-session": "*",
+    "compression": "*",
+    "body-parser": "*",
+    "method-override": "*",
+    "winston": "*",
+    "express-winston": "*",
+    "jquery": "*",
+    "jsrender": "*",
+    "lodash": "*",
+    "uuid": "*",
+    "yargs": "*"
+  }
+}
