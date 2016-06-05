@@ -1,16 +1,17 @@
 {
   "name": "doris",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Doris is awesome",
   "main": "index.js",
-  "bin": {},
-  "author": "Eduardo Lovatti",
+  "bin": {
+    "doris": "console.js"
+  },
+  "author": {
+    "name": "Eduardo Lovatti"
+  },
   "license": "ISC",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "bin": {
-    "doris": "console.js"
   },
   "dependencies": {
     "domino": "*",
@@ -21,10 +22,17 @@
     "method-override": "*",
     "winston": "*",
     "express-winston": "*",
+    "jqdom": "*",
     "jquery": "*",
     "jsrender": "*",
     "lodash": "*",
     "uuid": "*",
     "yargs": "*"
-  }
+  },
+  "readme": "# doris\n",
+  "readmeFilename": "README.md",
+  "gitHead": "aa06ddb2b051bca0e2a1413b651456aa34c8554c",
+  "_id": "doris@0.0.2",
+  "_shasum": "44515b60e7d1adab93c1aff10f9f36da3fd8cdad",
+  "_from": "doris@latest"
 }

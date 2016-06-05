@@ -26,7 +26,7 @@ var resolvePath = require('path').resolve;
     
     doris().start(function(server, session, settings){
 
-       console.log('Doris server is running', settings);
+       console.log('Doris server is running @localhost:', settings.port);
 
     });
     
