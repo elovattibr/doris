@@ -31,6 +31,9 @@ function DorisServer(options, route){
     //Instantiate express
     express = new Express(session);
 
+    //Enable access reporting
+    express.use(accessReporting());
+    
     //Method override capability
     express.use(methodOverride());
     
@@ -40,6 +43,18 @@ function DorisServer(options, route){
     
     express.use(route||this.router);
 
+};
+
+
+function accessReporting(){
+    return ExpressWinston.logger({
+      transports: [
+        new Winston.transports.Console({json: false, colorize: true})
+      ],
+      meta: false, 
+      expressFormat: true,
+      colorStatus: true, 
+    });
 };
 
 /*Proto methods*/

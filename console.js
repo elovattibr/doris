@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-/*!
- * Doris
- */
 
 'use strict';
 

@@ -45,10 +45,15 @@ function DorisRouter(options){
 };
 
 function autoAliasing(request, response, next){
+    
     var aliases = settings.static_aliases;
+    
     var target = request.path;
+    
     request.__target = (target in aliases)?aliases[target]:target;
+    
     next();
+    
 };
 
 function autoController(request, response, next){
@@ -60,6 +65,8 @@ function autoController(request, response, next){
     if(!ctrlpath){
         return next();
     };
+    
+    delete require.cache[ctrlpath];
     
     var controller = require(ctrlpath);
     
@@ -80,14 +87,19 @@ function autoController(request, response, next){
 };
 
 function controllerRouterHandler(request, next){
+    
     return {
         release:next,
+        reply:request.send,
+        redirect:request.redirect,
+        request:request,
         setData:function(data){
             data = (typeof data === 'object') ? data : [data];
             request.__controller = extend(request.__controller, data);
             return this;
         }
     };
+    
 };
 
 function autoRenderer(request, response, next){
@@ -103,7 +115,9 @@ function autoRenderer(request, response, next){
 };
 
 function autoStatic(folder){
+    
     return ExpressStatic(resolvePath('./'+folder));
+    
 };
 
 function autoMount(target, type){
@@ -114,6 +128,7 @@ function autoMount(target, type){
         case 'ctrl':
             file  = resolvePath(settings.root_path+"/"+settings.ctrl_path+'/'+target+'.'+settings.ctrl_ext);
             break;
+            
         case 'view':
             file  = resolvePath(settings.root_path+"/"+settings.view_path+'/'+target+'.'+settings.view_ext);
             break;
@@ -130,17 +145,22 @@ function autoMount(target, type){
 };
 
 function extractRequestedData(request){
+    
     return request.__controller;
+    
 };
 
 function render(request, response, view){
+    
     var data = extractRequestedData(request);
+    
     return instance.render.view.apply(this, 
         [view, data, function(content){
             response.contentType("text/html");
             response.send(content);
         }]
     );
+    
 };
 
 

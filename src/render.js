@@ -33,33 +33,43 @@ var settings,
             return compiled;
         },
         "Component":function(){
+            
             var ctx = this.tagCtx;
             var args = ctx.args;
             var props = ctx.props;
             var component = args[0];
             var compiled = '<div style="background-color: red; color: white;">'+component+' not exists</div>';
+            
             var variations = [
                 resolvePath(settings.root_path,component+'.tpl'),
                 resolvePath(settings.root_path+'/components/',component+'.tpl'),
                 resolvePath(settings.root_path+'/repository/',component+'.tpl'),
                 resolvePath(__dirname,'dist/ui/',component+'.tpl')
             ];
+            
             while(variations.length > 0) {
+                
                 var variation = variations.shift();
+                
                 if(fileExists(variation)){
-                    compiled = getRendered(variation,{
-                        args:args, props:props, content:ctx.render() //, parents:ctx.view.ctx.parentTags
-                    });
-                    break;
+                    var data = {};
+                        data.args = args, 
+                        data.props = props, 
+                        data.dataset = this.ctx.root;
+                        data.contents = ctx.render(data, helpers);
+                    
+                    return getRendered(variation, data);
                 };
+                
             };
+            
             return compiled;
         },
-        "Template":function(){ return tags.Component.apply(this, [arguments]); },
+        "Template":function(){ return tags.Component.apply(this, [arguments]); }
     },
     helpers = {
         data:function(xpath){
-            return this.data[xpath];
+            return getDataFromXPath.apply(this, [xpath]);
         }
     };
 
@@ -81,13 +91,11 @@ function getTemplate(path){
 
 function getRendered(view, data){
     
-    data = data || {};
-    
     var raw = getTemplate(view);
-    
+
     var tpl = JSRender.templates(raw);
     
-    return tpl.render(data, helpers);
+    return tpl.render(data || {}, helpers);
     
 };
 
@@ -110,16 +118,16 @@ function getBowerResource(resource){
         foreach(importFiles, function(file){
             var url = '/libs/bower/'+resource+'/'+file;
             switch(true) {
-                //ENDS WITH .JS
-                case ((/\.(js||JS)$/i).test(url)) : {
+                case ((/\.(js||JS)$/i).test(url)):
                     compiled += '<script type="text/javascript" src="'+url+'"></script>';
-                    break
-                };
-                //ENDS WITH .CSS
-                case ((/\.(css||CSS)$/i).test(url)) : {
+                    break;
+                case ((/\.(css||CSS)$/i).test(url)):
                     compiled += '<link rel="stylesheet" type="text/css" href="'+url+'" />';
-                    break
-                };
+                    break;
+                    
+                case ((/\.(ttf||woff||woff2)$/i).test(url)):
+                    compiled += '<link rel="stylesheet" href="'+url+'" />';
+                    break;
             }            
         });
         
@@ -132,21 +140,36 @@ function getBowerResource(resource){
     
 };
 
+function getDataFromXPath(xpath){
+    var ret = this.ctx.root.dataset[xpath]||{};
+    return ret;
+};
+
 function registerCustomTags(){
+    
     /*Register custom tags*/
     foreach(tags, function(target, tag){
+        
         var fromFile = function(){
+            var ctx = this;
+            var tag = ctx.tagCtx;
+            var args = tag.args;
+            var props = tag.props;
             var resolved = resolvePath(__dirname, target);
             var contents = String(getFileContents(resolved));
             var template = JSRender.templates(contents);
+            var internals = tag.render();
             return template.render({
-                args    : this.tagCtx.args,
-                props   : this.tagCtx.props,
-                content : this.tagCtx.render()
+                args:args,
+                props:props,
+                content: internals
             }, helpers);
         };
+        
         JSRender.views.tags(tag, (typeof target === 'function')?target:fromFile);
+        
     });    
+    
 };
 
 function alignDocument(html){
