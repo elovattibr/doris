@@ -20,7 +20,7 @@ module.exports = DorisRender;
 var settings,    
     tags = {
         /*Document is a file based component*/
-        "Document":'../dist/ui/defaults/document.tpl',
+        "Document":'defaults/document',
         /*Resource is a function based component*/
         "Bower":function(){
             var compiled = '';
@@ -32,43 +32,61 @@ var settings,
             });
             return compiled;
         },
-        "Component":function(){
+        "Require":function(){
+            var compiled = '';
+            foreach(this.tagCtx.args, function(arg, idx){
+                var list = arg.split(',');
+                foreach(list, function(item, idx){
+                    compiled += getExternalResourceTag(item.trim());
+                });
+            });
+            return compiled;            
+        },
+        "Component":function(target){
             
             var ctx = this.tagCtx;
             var args = ctx.args;
             var props = ctx.props;
-            var component = args[0];
+            var component = target||args[0];
             var compiled = '<div style="background-color: red; color: white;">'+component+' not exists</div>';
             
             var variations = [
-                resolvePath(settings.root_path,component+'.tpl'),
+                resolvePath(__dirname, '../dist/ui/',component+'.tpl'),
                 resolvePath(settings.root_path+'/components/',component+'.tpl'),
                 resolvePath(settings.root_path+'/repository/',component+'.tpl'),
-                resolvePath(__dirname,'dist/ui/',component+'.tpl')
+                resolvePath(settings.root_path+'/'+settings.view_path,component+'.tpl'),
+                resolvePath(settings.root_path, component+'.tpl')
             ];
             
             while(variations.length > 0) {
-                
                 var variation = variations.shift();
-                
                 if(fileExists(variation)){
                     var data = {};
                         data.args = args, 
                         data.props = props, 
-                        data.dataset = this.ctx.root;
-                        data.contents = ctx.render(data, helpers);
-                    
+                        data.dataset = this.ctx.root.dataset||this.ctx.root;
+                        data.content = ctx.render(data, helpers);
                     return getRendered(variation, data);
                 };
-                
             };
             
             return compiled;
         },
-        "Template":function(){ return tags.Component.apply(this, [arguments]); }
+        "Fragment":function(){ return tags.Component.apply(this, arguments); },
+        "Include":function(){ return tags.Component.apply(this, arguments); },
+        "Widget":function(){ return tags.Component.apply(this, arguments); },
+        "Template":function(){ 
+            
+            var ctx = this.tagCtx;
+            var props = ctx.props;
+            
+            return '<script id="'+props.id+'" type="text/js-render">'+
+                   ctx.tmpl.markup +
+                   '</script>'
+        },
     },
     helpers = {
-        data:function(xpath){
+        getDataFrom:function(xpath){
             return getDataFromXPath.apply(this, [xpath]);
         }
     };
@@ -112,24 +130,27 @@ function getBowerResource(resource){
             return compiled;
         };
         
-        var bowerConfig = JSON.parse(String(getFileContents(path+'/bower.json')));
-        var importFiles = (typeof bowerConfig.main == 'object')?bowerConfig.main:[bowerConfig.main];
+        if(fileExists(path + '/bower.json')){
+            
+            var bowerConfig = JSON.parse(String(getFileContents(path+'/bower.json')));
+            var importFiles = (typeof bowerConfig.main == 'object')?bowerConfig.main:[bowerConfig.main];
+
+            foreach(importFiles, function(file){
+                var url = '/libs/bower/'+resource+'/'+file;
+                compiled += getExternalResourceTag(url);
+            });
+            
+            return compiled;
+            
+        };
         
-        foreach(importFiles, function(file){
-            var url = '/libs/bower/'+resource+'/'+file;
-            switch(true) {
-                case ((/\.(js||JS)$/i).test(url)):
-                    compiled += '<script type="text/javascript" src="'+url+'"></script>';
-                    break;
-                case ((/\.(css||CSS)$/i).test(url)):
-                    compiled += '<link rel="stylesheet" type="text/css" href="'+url+'" />';
-                    break;
-                    
-                case ((/\.(ttf||woff||woff2)$/i).test(url)):
-                    compiled += '<link rel="stylesheet" href="'+url+'" />';
-                    break;
-            }            
-        });
+        if(fileExists(path + '/'+ resource +'.js')){
+            var url = '/libs/bower/'+resource+'/'+resource+'.js';
+            return getExternalResourceTag(url);
+        };
+        
+        console.error('Resource ' + resource + ' not found in ' + path);
+        return compiled;
         
     } catch (err) {
         console.error('Doris renderer could not read bower config file from resource requested.');
@@ -145,28 +166,30 @@ function getDataFromXPath(xpath){
     return ret;
 };
 
+function getExternalResourceTag (url) {
+    switch(true) {
+        case ((/\.(js||JS)$/i).test(url)):
+            return'<script type="text/javascript" src="'+url+'"></script>';
+        case ((/\.(css||CSS)$/i).test(url)):
+            return '<link rel="stylesheet" type="text/css" href="'+url+'" />';
+        case ((/\.(ttf||woff||woff2)$/i).test(url)):
+            return '<link rel="stylesheet" href="'+url+'" />';
+        default: return '';
+    }     
+}
+
 function registerCustomTags(){
     
     /*Register custom tags*/
     foreach(tags, function(target, tag){
         
         var fromFile = function(){
-            var ctx = this;
-            var tag = ctx.tagCtx;
-            var args = tag.args;
-            var props = tag.props;
-            var resolved = resolvePath(__dirname, target);
-            var contents = String(getFileContents(resolved));
-            var template = JSRender.templates(contents);
-            var internals = tag.render();
-            return template.render({
-                args:args,
-                props:props,
-                content: internals
-            }, helpers);
+            return tags.Component.apply(this, [target]);
         };
         
-        JSRender.views.tags(tag, (typeof target === 'function')?target:fromFile);
+        JSRender.views.tags(
+            tag, (typeof target === 'function')?target:fromFile
+        );
         
     });    
     
@@ -197,7 +220,7 @@ DorisRender.prototype = {
     
     view: function(view, data, reply){
         
-        var html = getRendered(view,data||{});
+        var html = getRendered(view, data||{});
         
         reply(alignDocument(html));
         

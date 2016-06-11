@@ -62,7 +62,7 @@ function autoController(request, response, next){
     
     request.__controller = {};
 
-    if(!ctrlpath){
+    if(ctrlpath === false){
         return next();
     };
     
@@ -93,7 +93,7 @@ function controllerRouterHandler(request, next){
         reply:request.send,
         redirect:request.redirect,
         request:request,
-        setData:function(data){
+        data:function(data){
             data = (typeof data === 'object') ? data : [data];
             request.__controller = extend(request.__controller, data);
             return this;
@@ -105,12 +105,19 @@ function controllerRouterHandler(request, next){
 function autoRenderer(request, response, next){
     
     var view = autoMount(request.__target, 'view');
+    var module = autoMount(request.__target, 'module');
     
-    if(!view){
-        return next();
-    };
-    
-    return render(request, response, view);
+    switch(true) {
+        
+        case (view !== false):
+            return render(request, response, view);
+            
+        case (module !== false):
+            return render(request, response, module);
+            
+        default: return next();
+        
+    }
     
 };
 
@@ -132,15 +139,23 @@ function autoMount(target, type){
         case 'view':
             file  = resolvePath(settings.root_path+"/"+settings.view_path+'/'+target+'.'+settings.view_ext);
             break;
+            
+        case 'module':
+            file  = resolvePath(settings.root_path+"/"+settings.view_path+'/'+target+'/main.'+settings.view_ext);
+            break;
     };
     
     try {
-        if(fileExists(file)) {
+        
+        if (fileExists(file)){
             return file;
         }
+        
     } catch (err) {
         return false;
     }
+    
+    return false;
     
 };
 
@@ -162,46 +177,3 @@ function render(request, response, view){
     );
     
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    //Logging capability
-//    express.use(ExpressWinston.logger({
-//      transports: [
-//        new Winston.transports.Console({
-//          json: true,
-//          colorize: true
-//        })
-//      ],
-//      meta: true, // optional: control whether you want to log the meta data about the request (default to true)
-//      msg: "HTTP {{req.method}} {{req.url}}", // optional: customize the default logging message. E.g. "{{res.statusCode}} {{req.method}} {{res.responseTime}}ms {{req.url}}"
-//      expressFormat: true, // Use the default Express/morgan request formatting, with the same colors. Enabling this will override any msg and colorStatus if true. Will only output colors on transports with colorize set to true
-//      colorStatus: true, // Color the status code, using the Express/morgan color palette (default green, 3XX cyan, 4XX yellow, 5XX red). Will not be recognized if expressFormat is true
-//      ignoreRoute: function (req, res) { return false; } // optional: allows to skip some log messages based on request and/or response
-//    }))
