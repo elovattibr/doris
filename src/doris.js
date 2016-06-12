@@ -48,3 +48,6 @@ exports.router = DorisRouter;
 
 //JsRender encapsulation
 exports.render = DorisRender;
+
+//JsRender encapsulation
+exports.config = DorisConfig;

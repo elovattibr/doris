@@ -2,6 +2,7 @@
  * DORIS VIEWS RENDERER
  * Eduardo Lovatti
  */
+
 'use strict';
 
 var foreach = require('lodash/forEach'),
@@ -42,48 +43,16 @@ var settings,
             });
             return compiled;            
         },
-        "Component":function(target){
-            
-            var ctx = this.tagCtx;
-            var args = ctx.args;
-            var props = ctx.props;
-            var component = target||args[0];
-            var compiled = '<div style="background-color: red; color: white;">'+component+' not exists</div>';
-            
-            var variations = [
-                resolvePath(__dirname, '../dist/ui/',component+'.tpl'),
-                resolvePath(settings.root_path+'/components/',component+'.tpl'),
-                resolvePath(settings.root_path+'/repository/',component+'.tpl'),
-                resolvePath(settings.root_path+'/'+settings.view_path,component+'.tpl'),
-                resolvePath(settings.root_path, component+'.tpl')
-            ];
-            
-            while(variations.length > 0) {
-                var variation = variations.shift();
-                if(fileExists(variation)){
-                    var data = {};
-                        data.args = args, 
-                        data.props = props, 
-                        data.dataset = this.ctx.root.dataset||this.ctx.root;
-                        data.content = ctx.render(data, helpers);
-                    return getRendered(variation, data);
-                };
-            };
-            
-            return compiled;
+        "Component":function(){
+            return handleCustomTag.apply(this,[arguments[0],0]);
         },
-        "Fragment":function(){ return tags.Component.apply(this, arguments); },
-        "Include":function(){ return tags.Component.apply(this, arguments); },
-        "Widget":function(){ return tags.Component.apply(this, arguments); },
-        "Template":function(){ 
-            
-            var ctx = this.tagCtx;
-            var props = ctx.props;
-            
-            return '<script id="'+props.id+'" type="text/js-render">'+
-                   ctx.tmpl.markup +
-                   '</script>'
+        "Include":function(){
+            return handleCustomTag.apply(this,[arguments[0],0]);
         },
+        "Widget":function(){
+            return handleCustomTag.apply(this,[arguments[0],2]);
+        },
+
     },
     helpers = {
         getDataFrom:function(xpath){
@@ -107,13 +76,37 @@ function getTemplate(path){
     
 };
 
-function getRendered(view, data){
+function findTemplateByName(component, jump){
     
+    var variations = [
+    /*0*/    [settings.root_path+'/'+settings.view_path,component+'.tpl'], //View
+    /*1*/    [settings.root_path, component+'.tpl'], //Project root
+    /*2*/    [settings.root_path+'/repository/',component+'.tpl'], //Repository alternative
+    /*3*/    [__dirname, '../dist/ui/',component+'.tpl'], //Doris common repository
+    /*4*/    ['./repository/',component+'.tpl'], //Repository
+    ].slice(jump||0);
+
+    while(variations.length > 0) {
+        var variation = variations.shift();
+        var resolved = resolvePath.apply(null, variation);
+        if(fileExists(resolved)){
+            return resolved;
+        };
+    };
+    
+    return false;
+    
+};
+
+function getRendered(view, data){
+        
     var raw = getTemplate(view);
 
     var tpl = JSRender.templates(raw);
+
+    var compiled = tpl.render(data || {}, helpers);
     
-    return tpl.render(data || {}, helpers);
+    return compiled ;
     
 };
 
@@ -136,7 +129,7 @@ function getBowerResource(resource){
             var importFiles = (typeof bowerConfig.main == 'object')?bowerConfig.main:[bowerConfig.main];
 
             foreach(importFiles, function(file){
-                var url = '/libs/bower/'+resource+'/'+file;
+                var url = './bower_components/'+resource+'/'+file;
                 compiled += getExternalResourceTag(url);
             });
             
@@ -145,7 +138,7 @@ function getBowerResource(resource){
         };
         
         if(fileExists(path + '/'+ resource +'.js')){
-            var url = '/libs/bower/'+resource+'/'+resource+'.js';
+            var url = './bower_components/'+resource+'/'+resource+'.js';
             return getExternalResourceTag(url);
         };
         
@@ -180,6 +173,8 @@ function getExternalResourceTag (url) {
 
 function registerCustomTags(){
     
+    JSRender.views.settings.debugMode(true);
+    
     /*Register custom tags*/
     foreach(tags, function(target, tag){
         
@@ -192,6 +187,30 @@ function registerCustomTags(){
         );
         
     });    
+    
+};
+
+function handleCustomTag(target, jump){
+    
+    /*WARNING ONLY USE IN JSRENDER CONTEXT*/
+    var ctx = this.tagCtx;
+    var args = ctx.args;
+    var props = ctx.props;
+    var component = target||args[0];
+    var compiled = '<div style="background-color: red; color: white;">'+component+' not exists</div>';
+    var template = findTemplateByName(component, jump||0);
+    var data = {};
+
+    if(template === false){
+        return compiled;
+    }
+
+    data.args = args, 
+    data.props = props, 
+    data.dataset = this.ctx.root.dataset||this.ctx.root;
+    data.content = ctx.render(data, helpers);
+
+    return getRendered(template, data); 
     
 };
 
@@ -218,11 +237,35 @@ function alignDocument(html){
 /*Proto methods*/
 DorisRender.prototype = {
     
+    /*USE WITHIN DORIS STANDALONE */
     view: function(view, data, reply){
         
-        var html = getRendered(view, data||{});
+        try {
+
+            var html = getRendered(view, data||{});
         
-        reply(alignDocument(html));
+            reply(alignDocument(html));
+            
+        } catch (err) {
+            
+            reply(JSON.stringify(err));
+            
+        }
+        
+    },
+    
+    /*USE WITHIN DORIS CLIENTS [Eg. Cordova/Electron] */
+    template: function(name, data, callback) {
+        
+        var template = findTemplateByName(name);
+        
+        if(template !== false){
+            var rendered = getRendered(template, data||{});
+//            var html = alignDocument(rendered);
+            return (callback||function(){})(rendered);
+        }
+        
+        throw ('Cannot find template"'+name+'"');
         
     }
     
