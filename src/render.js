@@ -21,7 +21,7 @@ module.exports = DorisRender;
 var settings,    
     tags = {
         /*Document is a file based component*/
-        "Document":'defaults/document',
+        "Document":'common/document',
         /*Resource is a function based component*/
         "Bower":function(){
             var compiled = '';
@@ -52,11 +52,22 @@ var settings,
         "Widget":function(){
             return handleCustomTag.apply(this,[arguments[0],2]);
         },
+        "Dump":function(){
+            return 'Props<hr/><pre>'+require('util').inspect(this.tagCtx.props)+'</pre>'+
+                   'Args<hr/><pre>'+require('util').inspect(this.tagCtx.args)+'</pre>'+
+                   'Root<hr/><pre>'+require('util').inspect(this.tagCtx.root)+'</pre>';
+        },
+        "Locale":function(){
+            return 'Props<hr/><pre>'+require('util').inspect(this.ctx.root.request)+'</pre>'
+        },
 
     },
     helpers = {
         getDataFrom:function(xpath){
             return getDataFromXPath.apply(this, [xpath]);
+        },
+        stringfy:function(obj){
+            return JSON.stringify(obj);
         }
     };
 
@@ -79,11 +90,13 @@ function getTemplate(path){
 function findTemplateByName(component, jump){
     
     var variations = [
+        
     /*0*/    [settings.root_path+'/'+settings.view_path,component+'.tpl'], //View
     /*1*/    [settings.root_path, component+'.tpl'], //Project root
-    /*2*/    [settings.root_path+'/repository/',component+'.tpl'], //Repository alternative
-    /*3*/    [__dirname, '../dist/ui/',component+'.tpl'], //Doris common repository
-    /*4*/    ['./repository/',component+'.tpl'], //Repository
+    /*2*/    [settings.root_path+'/doris_components/',component+'.tpl'], //Repository alternative
+    /*3*/    [__dirname, '../doris_components/',component+'.tpl'], //Doris common repository
+    /*4*/    ['./doris_components/',component+'.tpl'], //Repository
+    
     ].slice(jump||0);
 
     while(variations.length > 0) {
@@ -162,7 +175,7 @@ function getDataFromXPath(xpath){
 function getExternalResourceTag (url) {
     switch(true) {
         case ((/\.(js||JS)$/i).test(url)):
-            return'<script type="text/javascript" src="'+url+'"></script>';
+            return'<script type="text/javascript" src="'+url+'"/></script>';
         case ((/\.(css||CSS)$/i).test(url)):
             return '<link rel="stylesheet" type="text/css" href="'+url+'" />';
         case ((/\.(ttf||woff||woff2)$/i).test(url)):
@@ -207,11 +220,20 @@ function handleCustomTag(target, jump){
 
     data.args = args, 
     data.props = props, 
+    data.controller = this.ctx.root.controller||this.ctx.root.controller;
+    data.request = this.ctx.root.request||this.ctx.root.request;
     data.dataset = this.ctx.root.dataset||this.ctx.root;
     data.content = ctx.render(data, helpers);
 
     return getRendered(template, data); 
     
+};
+
+function handleCustomTagError(error){
+    var template = findTemplateByName('common/error');
+    return getRendered(template, {
+        error:error,
+    }, helpers);
 };
 
 function alignDocument(html){
@@ -248,7 +270,7 @@ DorisRender.prototype = {
             
         } catch (err) {
             
-            reply(JSON.stringify(err));
+            reply(handleCustomTagError(err));
             
         }
         

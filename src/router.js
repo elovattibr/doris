@@ -160,9 +160,10 @@ function autoMount(target, type){
 };
 
 function extractRequestedData(request){
-    
-    return request.__controller;
-    
+    return {
+        request:request,
+        controller:request.__controller
+    };
 };
 
 function render(request, response, view){
