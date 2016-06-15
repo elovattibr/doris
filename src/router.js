@@ -60,11 +60,8 @@ function autoAliasing(request, response, next){
 
 function autoLocale(request, response, next){
     
-    request.language = request.locale;
+    request.language = request.cookies.lang || request.locale;
     
-    console.log(request.locale);
-    console.log(request.body);
-
     next();
     
 };
@@ -86,7 +83,7 @@ function autoController(request, response, next){
     switch(typeof controller){
         
         case 'function': 
-            return controller( controllerRouterHandler(request, next) );
+            return controller( controllerRouterHandler(request, response, next) );
             
         case 'object': 
             request.__controller = controller;
@@ -99,13 +96,15 @@ function autoController(request, response, next){
     
 };
 
-function controllerRouterHandler(request, next){
+function controllerRouterHandler(request, response, next){
     
     return {
         release:next,
         reply:request.send,
         redirect:request.redirect,
         request:request,
+        response:response,
+        settings:settings,
         data:function(data){
             data = (typeof data === 'object') ? data : [data];
             request.__controller = extend(request.__controller, data);
@@ -127,6 +126,10 @@ function autoRenderer(request, response, next){
             
         case (module !== false):
             return render(request, response, module);
+            
+        case (Object.keys(request.__controller).length > 0):
+            response.json(request.__controller);
+            break;
             
         default: return next();
         

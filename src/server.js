@@ -9,7 +9,8 @@ var Express = require('express'),
     ExpressSession = require('express-session'),
     ExpressWinston = require('express-winston'),
     ExpressBodyParser = require('body-parser'),
-    methodOverride = require('method-override'),
+    ExpressCookieParser = require('cookie-parser'),
+    ExpressMethodOverride = require('method-override'),
     ExpressLocale = require("locale");
 
 /*
@@ -32,19 +33,21 @@ function DorisServer(options, route){
     //Instantiate express
     express = new Express(session);
     
+    //Enable cookie support
+    express.use(ExpressCookieParser());
+    
     //Enable locale support
     express.use(ExpressLocale(settings.locales));
     
-    express.use(ExpressBodyParser.json() );       // to support JSON-encoded bodies
-    express.use(ExpressBodyParser.urlencoded({     // to support URL-encoded bodies
-      extended: true
-    }));     
+    //Enable multi-part parsing support
+    express.use(ExpressBodyParser.json());  
+    express.use(ExpressBodyParser.urlencoded({extended: true}));     
 
     //Enable access reporting
     express.use(accessReporting());
     
     //Method override capability
-    express.use(methodOverride());
+    express.use(ExpressMethodOverride());
     
     if(!(route||this.router)){
         throw new Error("A middleware function must be set as router.");

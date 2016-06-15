@@ -1,6 +1,6 @@
 {
   "name": "doris",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Doris is awesome",
   "main": "index.js",
   "bin": {
@@ -21,6 +21,7 @@
     "express-session": "*",
     "compression": "*",
     "body-parser": "*",
+    "cookie-parser": "*",
     "method-override": "*",
     "winston": "*",
     "express-winston": "*",
