@@ -4,12 +4,13 @@
  */
 'use strict';
 
-var extend = require('lodash/extend'),
-    Express = require('express'),
+var Express = require('express'),
     Winston = require('winston'),
     ExpressSession = require('express-session'),
     ExpressWinston = require('express-winston'),
-    methodOverride = require('method-override');
+    ExpressBodyParser = require('body-parser'),
+    methodOverride = require('method-override'),
+    ExpressLocale = require("locale");
 
 /*
  * Module begins
@@ -30,6 +31,14 @@ function DorisServer(options, route){
 
     //Instantiate express
     express = new Express(session);
+    
+    //Enable locale support
+    express.use(ExpressLocale(settings.locales));
+    
+    express.use(ExpressBodyParser.json() );       // to support JSON-encoded bodies
+    express.use(ExpressBodyParser.urlencoded({     // to support URL-encoded bodies
+      extended: true
+    }));     
 
     //Enable access reporting
     express.use(accessReporting());

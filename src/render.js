@@ -52,13 +52,17 @@ var settings,
         "Widget":function(){
             return handleCustomTag.apply(this,[arguments[0],2]);
         },
+        "Locale":function(){
+            var ins = require('util').inspect;
+            var request = this.ctx.root.request;
+            var language = request.locale;
+            var markup = this.tagCtx.content.markup;
+            return markup + ' ' + language + ins(request.body);
+        },
         "Dump":function(){
             return 'Props<hr/><pre>'+require('util').inspect(this.tagCtx.props)+'</pre>'+
                    'Args<hr/><pre>'+require('util').inspect(this.tagCtx.args)+'</pre>'+
                    'Root<hr/><pre>'+require('util').inspect(this.tagCtx.root)+'</pre>';
-        },
-        "Locale":function(){
-            return 'Props<hr/><pre>'+require('util').inspect(this.ctx.root.request)+'</pre>'
         },
 
     },
@@ -179,7 +183,7 @@ function getExternalResourceTag (url) {
         case ((/\.(css||CSS)$/i).test(url)):
             return '<link rel="stylesheet" type="text/css" href="'+url+'" />';
         case ((/\.(ttf||woff||woff2)$/i).test(url)):
-            return '<link rel="stylesheet" href="'+url+'" />';
+            return '<link rel="stylesheet" type="application/x-font-ttf" href="'+url+'" />';
         default: return '';
     }     
 }

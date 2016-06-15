@@ -28,6 +28,7 @@ var settings = {
     "ctrl_path":"/controllers",
     "view_ext":"tpl",
     "ctrl_ext":"js",
+    "locales":["pt_BR","pt","en", "en_US", "es"],
     "static_aliases":{
         "/":"index"
     },

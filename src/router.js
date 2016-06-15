@@ -34,6 +34,8 @@ function DorisRouter(options){
         router.use(folder.remote, autoStatic(folder.local));
     });
     
+    router.use(autoLocale);
+    
     router.use(autoAliasing);
     
     router.use(autoController);
@@ -52,6 +54,17 @@ function autoAliasing(request, response, next){
     
     request.__target = (target in aliases)?aliases[target]:target;
     
+    next();
+    
+};
+
+function autoLocale(request, response, next){
+    
+    request.language = request.locale;
+    
+    console.log(request.locale);
+    console.log(request.body);
+
     next();
     
 };
