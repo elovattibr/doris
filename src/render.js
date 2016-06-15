@@ -53,11 +53,24 @@ var settings,
             return handleCustomTag.apply(this,[arguments[0],2]);
         },
         "Locale":function(){
-            var ins = require('util').inspect;
+            
             var request = this.ctx.root.request;
-            var language = request.locale;
+            var language = request.language;
             var markup = this.tagCtx.content.markup;
-            return markup + ' ' + language + ins(request.body);
+            var normalized = markup.replace(/^\s+|\s+$/g, '');
+            
+            try {
+                
+                var locale = resolvePath(settings.root_path+settings.locales_path, language+'.json');
+                var list = (fileExists(locale))?JSON.parse(String(getFileContents(locale))):{};
+                return (normalized in list)?list[normalized]:normalized;
+                
+            } catch (err) {
+                console.error(err);
+            }
+            
+            return normalized;
+            
         },
         "Dump":function(){
             return 'Props<hr/><pre>'+require('util').inspect(this.tagCtx.props)+'</pre>'+
