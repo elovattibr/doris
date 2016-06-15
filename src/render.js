@@ -8,6 +8,7 @@
 var foreach = require('lodash/forEach'),
     JSRender = require('jsrender'),
     jQuery = require('jqdom'),
+    HtmlMinifier = require('html-minifier').minify,
     fileExists = require('fs').existsSync,
     resolvePath = require('path').resolve,
     getFileContents = require('fs').readFileSync;
@@ -192,7 +193,7 @@ function getDataFromXPath(xpath){
 function getExternalResourceTag (url) {
     switch(true) {
         case ((/\.(js||JS)$/i).test(url)):
-            return'<script type="text/javascript" src="'+url+'"/></script>';
+            return'<script type="text/javascript" src="'+url+'"></script>';
         case ((/\.(css||CSS)$/i).test(url)):
             return '<link rel="stylesheet" type="text/css" href="'+url+'" />';
         case ((/\.(ttf||woff||woff2)$/i).test(url)):
@@ -257,16 +258,14 @@ function alignDocument(html){
     
     var $ = jQuery(html);
     
-    var head = $('head');
-    
     $('[include_once]').each(function(){
         var name = $(this).attr('name');
-        if($('[name='+name+']',head).size()>0){
-            $(this).remove(); 
+        console.log(name)
+        if($('[name='+name+']',$('head')).size()>0){
+            $(this).remove();
             return;
         }
-        head.append($(this));
-        return; 
+        $('head').append($(this));
     });
     
     return $('html').get(0).outerHTML;
@@ -282,8 +281,16 @@ DorisRender.prototype = {
         try {
 
             var html = getRendered(view, data||{});
+            var parsed = alignDocument(html);
+            var mini = HtmlMinifier(parsed, {
+                removeAttributeQuotes: true,
+                collapseWhitespace: true,
+                removeComments: true,
+                minifyCSS: true,
+                minifyJS: true,
+            });
         
-            reply(alignDocument(html));
+            reply(mini);
             
         } catch (err) {
             
