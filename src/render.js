@@ -292,7 +292,7 @@ DorisRender.prototype = {
                 minifyJS: true,
             });
         
-            reply(norm);
+            reply(settings.debug?norm:mini);
             
         } catch (err) {
             
