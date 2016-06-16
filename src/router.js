@@ -53,7 +53,7 @@ function autoAliasing(request, response, next){
     var target = request.path;
     
     request.__url = target.replace(/^\//, '');
-//    console.log(target, request.__url);
+    
     switch(true) {
         
         case ('*' in aliases):
@@ -65,6 +65,8 @@ function autoAliasing(request, response, next){
             break;
         
     }
+    
+    request.__origin = (target in aliases)?aliases[target]:target;
     
     next();
     
@@ -80,8 +82,8 @@ function autoLocale(request, response, next){
 
 function autoController(request, response, next){
     
-    var ctrlpath = autoMount(request.__target, 'ctrl');
-    
+    var ctrlpath = autoMount(request.__origin, 'ctrl');
+    console.log(request.__origin)
     request.__controller = {};
 
     if(ctrlpath === false){
