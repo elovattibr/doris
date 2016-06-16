@@ -7,5 +7,5 @@
         <title>{{:props.title}}</title>
         {{Bower props.bower/}}
     </head>
-    <body>{{:content}}</body>
+    <body>{{:contents}}</body>
 </html>

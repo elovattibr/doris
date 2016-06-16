@@ -223,8 +223,10 @@ function registerCustomTags(){
     });    
     
 };
+var seq = 0;
 
 function handleCustomTag(target, jump){
+    
     
     /*WARNING ONLY USE IN JSRENDER CONTEXT*/
     var ctx = this.tagCtx;
@@ -244,8 +246,8 @@ function handleCustomTag(target, jump){
     data.controller = this.ctx.root.controller||this.ctx.root.controller;
     data.request = this.ctx.root.request||this.ctx.root.request;
     data.dataset = this.ctx.root.dataset||this.ctx.root;
-    data.content = ctx.render(data, helpers);
-
+    data.contents = ctx.render(data, helpers);
+    
     return getRendered(template, data); 
     
 };
