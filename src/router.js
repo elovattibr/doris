@@ -52,7 +52,19 @@ function autoAliasing(request, response, next){
     
     var target = request.path;
     
-    request.__target = (target in aliases)?aliases[target]:target;
+    request.__url = target.replace(/^\//, '');
+//    console.log(target, request.__url);
+    switch(true) {
+        
+        case ('*' in aliases):
+            request.__target = aliases['*'];
+            break;
+            
+        default:
+            request.__target = (target in aliases)?aliases[target]:target;
+            break;
+        
+    }
     
     next();
     

@@ -110,12 +110,13 @@ function findTemplateByName(component, jump){
     var variations = [
         
     /*0*/    [settings.root_path+'/'+settings.view_path,component+'.tpl'], //View
+    /*0*/    [settings.root_path+'/'+settings.view_path,component+'/main.tpl'], //View
     /*1*/    [settings.root_path, component+'.tpl'], //Project root
     /*2*/    [settings.root_path+'/doris_components/',component+'.tpl'], //Repository alternative
     /*3*/    [__dirname, '../doris_components/',component+'.tpl'], //Doris common repository
     /*4*/    ['./doris_components/',component+'.tpl'], //Repository
     
-    ].slice(jump||0);
+    ]; //.slice(jump||0);
 
     while(variations.length > 0) {
         var variation = variations.shift();
@@ -158,9 +159,11 @@ function getBowerResource(resource){
             
             var bowerConfig = JSON.parse(String(getFileContents(path+'/bower.json')));
             var importFiles = (typeof bowerConfig.main == 'object')?bowerConfig.main:[bowerConfig.main];
+            var path = require('path');
+            var ins = require('util').inspect;
 
             foreach(importFiles, function(file){
-                var url = './bower_components/'+resource+'/'+file;
+                var url = '/bower_components/'+resource+'/'+file;
                 compiled += getExternalResourceTag(url);
             });
             
@@ -169,7 +172,7 @@ function getBowerResource(resource){
         };
         
         if(fileExists(path + '/'+ resource +'.js')){
-            var url = './bower_components/'+resource+'/'+resource+'.js';
+            var url = '/bower_components/'+resource+'/'+resource+'.js';
             return getExternalResourceTag(url);
         };
         
@@ -254,13 +257,12 @@ function handleCustomTagError(error){
     }, helpers);
 };
 
-function alignDocument(html){
+function normalizeDocument(html){
     
     var $ = jQuery(html);
     
     $('[include_once]').each(function(){
         var name = $(this).attr('name');
-        console.log(name)
         if($('[name='+name+']',$('head')).size()>0){
             $(this).remove();
             return;
@@ -281,8 +283,8 @@ DorisRender.prototype = {
         try {
 
             var html = getRendered(view, data||{});
-            var parsed = alignDocument(html);
-            var mini = HtmlMinifier(parsed, {
+            var norm = normalizeDocument(html);
+            var mini = HtmlMinifier(norm, {
                 removeAttributeQuotes: true,
                 collapseWhitespace: true,
                 removeComments: true,
@@ -290,7 +292,7 @@ DorisRender.prototype = {
                 minifyJS: true,
             });
         
-            reply(mini);
+            reply(norm);
             
         } catch (err) {
             
