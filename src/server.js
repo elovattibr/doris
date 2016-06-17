@@ -27,14 +27,17 @@ function DorisServer(options, route){
     
     settings = options;
     
-    //Instantiate session
-    session = new ExpressSession(settings);
-
     //Instantiate express
-    express = new Express(session);
+    express = new Express();
     
-    //Enable cookie support
-    express.use(ExpressCookieParser());
+    //Instantiate session
+    session = new ExpressSession({
+          secret: 'keyboard cat',
+          resave: false,
+          saveUninitialized: true,
+          cookie: { secure: true }        
+    });
+    
     
     //Enable locale support
     express.use(ExpressLocale(settings.locales));
@@ -43,6 +46,12 @@ function DorisServer(options, route){
     express.use(ExpressBodyParser.json());  
     express.use(ExpressBodyParser.urlencoded({extended: true}));     
 
+    //Enable cookie support
+    express.use(ExpressCookieParser());
+    
+    //Enable cookie support
+    express.use(session);
+    
     //Enable access reporting
     express.use(accessReporting());
     

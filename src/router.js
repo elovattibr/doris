@@ -74,8 +74,7 @@ function autoAliasing(request, response, next){
 
 function autoLocale(request, response, next){
     
-    request.language = request.cookies.lang || 
-                       settings.locales_domains[request.hostname] ||
+    request.language = settings.locales_domains[request.hostname] ||
                        request.locale;
     
     next();
