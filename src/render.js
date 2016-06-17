@@ -21,8 +21,6 @@ module.exports = DorisRender;
 
 var settings,    
     tags = {
-        /*Document is a file based component*/
-        "Document":'common/document',
         /*Resource is a function based component*/
         "Bower":function(){
             var compiled = '';
@@ -211,22 +209,12 @@ function registerCustomTags(){
     
     /*Register custom tags*/
     foreach(tags, function(target, tag){
-        
-        var fromFile = function(){
-            return tags.Component.apply(this, [target]);
-        };
-        
-        JSRender.views.tags(
-            tag, (typeof target === 'function')?target:fromFile
-        );
-        
+        JSRender.views.tags(tag, target);
     });    
     
 };
-var seq = 0;
 
 function handleCustomTag(target, jump){
-    
     
     /*WARNING ONLY USE IN JSRENDER CONTEXT*/
     var ctx = this.tagCtx;
@@ -263,11 +251,18 @@ function normalizeDocument(html){
     
     var $ = jQuery(html);
     
+    /* If has this attr will move to head section, 
+     * if any subsequent element has the same name
+     * it will be excluded 
+     * [do not use for partial views dependencies]*/
     $('[include_once]').each(function(){
         var name = $(this).attr('name');
-        if($('[name='+name+']',$('head')).size()>0){
-            $(this).remove();
-            return;
+        switch(true) {
+            case (!name): break;
+            case (name.length <= 0): break;
+            case ($('[name='+name+']',$('head')).size()>0):
+                $(this).remove();
+                return;
         }
         $('head').append($(this));
     });
@@ -286,13 +281,14 @@ DorisRender.prototype = {
 
             var html = getRendered(view, data||{});
             var norm = normalizeDocument(html);
-            var mini = HtmlMinifier(norm, {
-                removeAttributeQuotes: true,
-                collapseWhitespace: true,
-                removeComments: true,
-                minifyCSS: true,
-                minifyJS: true,
-            });
+            var mini = (!settings.debug)?
+                HtmlMinifier(norm, {
+                    removeAttributeQuotes: true,
+                    collapseWhitespace: true,
+                    removeComments: true,
+                    minifyCSS: true,
+                    minifyJS: true,
+                }):null;
         
             reply(settings.debug?norm:mini);
             

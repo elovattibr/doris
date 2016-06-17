@@ -29,6 +29,7 @@ var settings = {
     "view_ext":"tpl",
     "ctrl_ext":"js",
     "locales":["pt_BR","pt","en", "en_US", "es"],
+    "locales_domains":{},
     "static_aliases":{
         "/":"index"
     },
