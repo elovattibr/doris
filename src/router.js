@@ -30,13 +30,13 @@ function DorisRouter(options){
     
     router = ExpressRouter();
     
-    settings.static_folders.forEach(function(folder){
-        router.use(folder.remote, autoStatic(folder.local));
-    });
+    router.use(autoAliasing);
     
     router.use(autoLocale);
     
-    router.use(autoAliasing);
+    settings.static_folders.forEach(function(folder){
+        router.use(folder.remote, autoStatic(folder.local));
+    });
     
     router.use(autoController);
     
@@ -74,8 +74,12 @@ function autoAliasing(request, response, next){
 
 function autoLocale(request, response, next){
     
-    request.language = settings.locales_domains[request.hostname] ||
-                       request.locale;
+    var domain_language = settings.locales_domains[request.hostname];
+    var local_language = request.locale;
+    
+    request.language = domain_language || local_language;
+    
+    console.log(domain_language, local_language, request.language);
     
     next();
     
@@ -84,7 +88,7 @@ function autoLocale(request, response, next){
 function autoController(request, response, next){
     
     var ctrlpath = autoMount(request.__origin, 'ctrl');
-    console.log(request.__origin)
+    
     request.__controller = {};
 
     if(ctrlpath === false){
