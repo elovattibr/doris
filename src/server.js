@@ -38,7 +38,6 @@ function DorisServer(options, route){
           cookie: { secure: true }        
     });
     
-    
     //Enable locale support
     express.use(ExpressLocale(settings.locales));
     

@@ -30,13 +30,15 @@ function DorisRouter(options){
     
     router = ExpressRouter();
     
-    router.use(autoAliasing);
-    
-    router.use(autoLocale);
-    
     settings.static_folders.forEach(function(folder){
         router.use(folder.remote, autoStatic(folder.local));
     });
+    
+    router.use(mainModule);
+    
+    router.use(autoAliasing);
+    
+    router.use(autoLocale);
     
     router.use(autoController);
     
@@ -44,6 +46,26 @@ function DorisRouter(options){
     
     return router;
 
+};
+
+function mainModule(request, response, next){
+    
+    var main = settings.main_module || false;
+    
+    request.__main = {};
+
+    if(main === false){
+        return next();
+    };
+    
+    var ctrlpath = autoMount(main, 'system');
+    
+    delete require.cache[ctrlpath];
+    
+    var module = require(ctrlpath);
+    
+    return module( controllerRouterHandler(request, response, next) );
+    
 };
 
 function autoAliasing(request, response, next){
@@ -78,8 +100,6 @@ function autoLocale(request, response, next){
     var local_language = request.locale;
     
     request.language = domain_language || local_language;
-    
-    console.log(domain_language, local_language, request.language);
     
     next();
     
@@ -120,7 +140,6 @@ function controllerRouterHandler(request, response, next){
     return {
         release:next,
         reply:request.send,
-        redirect:request.redirect,
         request:request,
         response:response,
         settings:settings,
@@ -177,6 +196,10 @@ function autoMount(target, type){
             
         case 'module':
             file  = resolvePath(settings.root_path+"/"+settings.view_path+'/'+target+'/main.'+settings.view_ext);
+            break;
+            
+        case 'system':
+            file  = resolvePath(settings.root_path+"/"+target+'.'+settings.ctrl_ext);
             break;
     };
     

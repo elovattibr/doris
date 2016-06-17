@@ -1,6 +1,6 @@
 {
   "name": "doris",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Doris is awesome",
   "main": "index.js",
   "bin": {
