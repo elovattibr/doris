@@ -5,7 +5,8 @@
 
 'use strict';
 
-var foreach = require('lodash/forEach'),
+var tools = require('./tools'),
+    foreach = require('lodash/forEach'),
     JSRender = require('jsrender'),
     jQuery = require('jqdom'),
     HtmlMinifier = require('html-minifier').minify,
@@ -19,7 +20,8 @@ var foreach = require('lodash/forEach'),
 
 module.exports = DorisRender;
 
-var settings,    
+var settings,   
+    cache = {},
     tags = {
         /*Resource is a function based component*/
         "Bower":function(){
@@ -97,9 +99,15 @@ function DorisRender(options){
 
 function getTemplate(path){
     
+    var hexname = tools.strToHex(path);
+
+    if(hexname in cache && settings.debug !== true) {
+        return JSRender.templates(cache[hexname]);
+    };
+    
     var raw = getFileContents(path);
     
-    return String(raw);
+    return cache[hexname] = JSRender.templates(String(raw));
     
 };
 
@@ -110,7 +118,7 @@ function findTemplateByName(component, jump){
     /*0*/    [settings.root_path+'/'+settings.view_path,component+'.tpl'], //View
     /*0*/    [settings.root_path+'/'+settings.view_path,component+'/main.tpl'], //View
     /*1*/    [settings.root_path, component+'.tpl'], //Project root
-    /*2*/    [settings.root_path+'/doris_components/',component+'.tpl'], //Repository alternative
+    /*1*/    [settings.root_path+'/src/', component+'.tpl'], //Project root
     /*3*/    [__dirname, '../doris_components/',component+'.tpl'], //Doris common repository
     /*4*/    ['./doris_components/',component+'.tpl'], //Repository
     
@@ -130,9 +138,7 @@ function findTemplateByName(component, jump){
 
 function getRendered(view, data){
         
-    var raw = getTemplate(view);
-
-    var tpl = JSRender.templates(raw);
+    var tpl = getTemplate(view);
 
     var compiled = tpl.render(data || {}, helpers);
     

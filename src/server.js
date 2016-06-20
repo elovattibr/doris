@@ -7,6 +7,7 @@
 var Express = require('express'),
     Winston = require('winston'),
     ExpressSession = require('express-session'),
+    ExpressSessionFileStore = require('session-file-store')(ExpressSession),
     ExpressWinston = require('express-winston'),
     ExpressBodyParser = require('body-parser'),
     ExpressCookieParser = require('cookie-parser'),
@@ -18,8 +19,7 @@ var Express = require('express'),
  */ 
 module.exports = DorisServer;
  
-var session = null,
-    express = null,
+var express =  new Express(),
     settings = null;
 
 /*Server constructor*/
@@ -27,16 +27,18 @@ function DorisServer(options, route){
     
     settings = options;
     
-    //Instantiate express
-    express = new Express();
+    //X-Forward-for 
+    express.set("trust proxy", true);
     
     //Instantiate session
-    session = new ExpressSession({
-          secret: 'keyboard cat',
-          resave: false,
-          saveUninitialized: true,
-          cookie: { secure: true }        
-    });
+    express.use(ExpressSession({
+        secret: 'keyboard cat',
+        resave: false,
+        saveUninitialized: true,
+        store: new ExpressSessionFileStore({
+            path:'data/sessions/',
+        })
+    }));
     
     //Enable locale support
     express.use(ExpressLocale(settings.locales));
@@ -48,10 +50,7 @@ function DorisServer(options, route){
     //Enable cookie support
     express.use(ExpressCookieParser());
     
-    //Enable cookie support
-    express.use(session);
-    
-    //Enable access reporting
+    //Enable access/error reporting
     express.use(accessReporting());
     
     //Method override capability
@@ -63,17 +62,21 @@ function DorisServer(options, route){
     
     express.use(route||this.router);
 
-};
+    express.use(function(request, response){
+        response.send(404);
+    });
 
+};
 
 function accessReporting(){
     return ExpressWinston.logger({
       transports: [
-        new Winston.transports.Console({json: false, colorize: true})
+        new Winston.transports.Console({json: false, colorize: false}),
+        new Winston.transports.File( {json: false, colorize: true, filename: './logs/access.log'}),
       ],
+      msg: "HTTP {{req.method}} {{req.ip}} {{req.url}} {{res.statusCode}} {{res.responseTime}}ms ",
       meta: false, 
-      expressFormat: true,
-      colorStatus: true, 
+      colorStatus: true
     });
 };
 
@@ -86,7 +89,7 @@ DorisServer.prototype = {
         //Listen
         express.listen(settings.port, function(){
 
-            (callback||function(){})(express, session, settings);
+            (callback||function(){})(express, settings);
 
         });
 

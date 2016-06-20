@@ -5,6 +5,7 @@
 'use strict';
 
 var extend = require('lodash/extend'),
+    tools = require('./tools'),
     resolvePath = require('path').resolve,
     fileExists = require('fs').existsSync,
     Express = require('express'),
@@ -19,7 +20,8 @@ module.exports = DorisRouter;
 
 var instance = null,
     settings = null,
-    router = null;
+    router = null,
+    cache = {};
 
 function DorisRouter(options){
     
@@ -34,38 +36,18 @@ function DorisRouter(options){
         router.use(folder.remote, autoStatic(folder.local));
     });
     
-    router.use(mainModule);
+    router.use(autoLocale);
+    
+    router.use(autoRuntime);
     
     router.use(autoAliasing);
     
-    router.use(autoLocale);
-    
     router.use(autoController);
     
-    router.use(autoRenderer);
+    router.use(sendToBrowser);
     
     return router;
 
-};
-
-function mainModule(request, response, next){
-    
-    var main = settings.main_module || false;
-    
-    request.__main = {};
-
-    if(main === false){
-        return next();
-    };
-    
-    var ctrlpath = autoMount(main, 'system');
-    
-    delete require.cache[ctrlpath];
-    
-    var module = require(ctrlpath);
-    
-    return module( controllerRouterHandler(request, response, next) );
-    
 };
 
 function autoAliasing(request, response, next){
@@ -105,54 +87,133 @@ function autoLocale(request, response, next){
     
 };
 
-function autoController(request, response, next){
+function autoCache(request, response, next, mode){
     
-    var ctrlpath = autoMount(request.__origin, 'ctrl');
-    
-    request.__controller = {};
+    var type = (mode=='system')?'__main':'__controller',
+        main = type=='__main'?(settings.main_module || false):(request.__origin || false),
+        path = main?autoMount(main, (type=='__main')?'system':'ctrl'):false,
+        data = request[type] = {},
+        module = null;
 
-    if(ctrlpath === false){
+    if(main === false || path === false){
         return next();
     };
     
-    delete require.cache[ctrlpath];
-    
-    var controller = require(ctrlpath);
-    
-    switch(typeof controller){
+    var hexname = tools.strToHex(path);
+
+    switch(true) {
         
-        case 'function': 
-            return controller( controllerRouterHandler(request, response, next) );
-            
-        case 'object': 
-            request.__controller = controller;
-            return next();
+        case (hexname in cache && settings.debug !== true):
+            module = cache[hexname];
+            break;
             
         default:
-            return next();
+            module = (cache[hexname] = require(path));
         
     }
+    
+    if(typeof module == 'object'){
+        data = module;
+        return next();
+    }
+    
+    return module(controllerRouterHandler(request, response, next));
+    
+};
+
+function autoRuntime(request, response, next){
+    
+    return autoCache(request, response, next, 'system');
+    
+};
+
+function autoController(request, response, next){
+    
+    return autoCache(request, response, next, 'ctrl');
     
 };
 
 function controllerRouterHandler(request, response, next){
     
+    function setMainControllerData(key, data){
+        request[key] = data;
+        return this;
+    };
+    
+    function getParsedRequestedUrl(){
+        return request.query;
+    };
+    
+    function getRequestedPost(){
+        return request.body;
+    };
+    
+    function setViewData(data){
+        data = (typeof data === 'object') ? data : [data];
+        request.__controller = extend(request.__controller, data);
+        return this;
+    };
+    
     return {
+        /*Middleware*/
         release:next,
-        reply:request.send,
         request:request,
         response:response,
-        settings:settings,
-        data:function(data){
-            data = (typeof data === 'object') ? data : [data];
-            request.__controller = extend(request.__controller, data);
-            return this;
-        }
+        /*Custom getters*/
+        ssid:request.sessionID,
+        method:request.method,
+        post:getRequestedPost,
+        query:getParsedRequestedUrl,
+        /*Custom setters*/
+        set:setMainControllerData,
+        data:setViewData
     };
     
 };
 
-function autoRenderer(request, response, next){
+function autoStatic(folder){
+    
+    return ExpressStatic(resolvePath('./'+folder));
+    
+};
+
+function autoMount(target, type){
+    
+    var basedir = settings.root_path,
+        typedir = {
+            'ctrl':{path:settings.ctrl_path, ext:'.'+settings.ctrl_ext},
+            'view':{path:settings.view_path, ext:'.'+settings.view_ext},
+            'module':{path:settings.view_path, ext:'/main.'+settings.view_ext},
+            'system':{path:'/', ext:'.'+settings.ctrl_ext},
+        },
+        filedir = basedir+'/'+typedir[type]['path']+'/'+target,
+        filepath = filedir + typedir[type]['ext'],
+        file  = resolvePath(filepath);
+
+    try {
+        
+        if (fileExists(file)){
+            return file;
+        }
+        
+    } catch (err) {
+        return false;
+    }
+    
+    return false;
+    
+};
+
+function extractRequestedData(request){
+    return {
+        get:request.params,
+        post:request.body,
+        request:request,
+        controller:request.__controller
+    };
+};
+
+function sendToBrowser(request, response, next){
     
     var view = autoMount(request.__target, 'view');
     var module = autoMount(request.__target, 'module');
@@ -173,55 +234,6 @@ function autoRenderer(request, response, next){
         
     }
     
-};
-
-function autoStatic(folder){
-    
-    return ExpressStatic(resolvePath('./'+folder));
-    
-};
-
-function autoMount(target, type){
-    
-    var file;
-    
-    switch(type){
-        case 'ctrl':
-            file  = resolvePath(settings.root_path+"/"+settings.ctrl_path+'/'+target+'.'+settings.ctrl_ext);
-            break;
-            
-        case 'view':
-            file  = resolvePath(settings.root_path+"/"+settings.view_path+'/'+target+'.'+settings.view_ext);
-            break;
-            
-        case 'module':
-            file  = resolvePath(settings.root_path+"/"+settings.view_path+'/'+target+'/main.'+settings.view_ext);
-            break;
-            
-        case 'system':
-            file  = resolvePath(settings.root_path+"/"+target+'.'+settings.ctrl_ext);
-            break;
-    };
-    
-    try {
-        
-        if (fileExists(file)){
-            return file;
-        }
-        
-    } catch (err) {
-        return false;
-    }
-    
-    return false;
-    
-};
-
-function extractRequestedData(request){
-    return {
-        request:request,
-        controller:request.__controller
-    };
 };
 
 function render(request, response, view){
